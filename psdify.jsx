@@ -1,5 +1,27 @@
 #include "PhotoshopJsonParser.js"
 
+function sanitizeFont(string) {
+	string = string.split(' ').join('');
+	var regex = /-(reg(ular)?|ital(ic)?|bold|bold[_-]?italic)$/gi;
+	var result = regex.test(string);
+
+	if (!result) {
+		regex = /(regular|italic|bold|bold-italic)/gi;
+		var matches = string.match(regex);
+		if (matches) {
+			var match;
+			while ((match = regex.exec(string)) !== null) {
+				string = string.split('');
+				string.splice(match.index, 0, '-');
+				string = string.join('');
+				return string;
+			}
+		} 
+	}
+
+	return string;
+}
+
 function convertStringToArray(string) {
 	var numbers = string.split(',');
 
@@ -43,7 +65,7 @@ function _open(raw_file, cleaned_file, json_file, output_file) {
 		fileRef = File(cleaned_file);
 		docRef = app.open(fileRef);
 	}
- 
+
 	const jsonFile = File(json_file); 
 	jsonFile.encoding = "UTF-8";
 	jsonFile.open ('r');
@@ -101,9 +123,9 @@ function _open(raw_file, cleaned_file, json_file, output_file) {
 		textItemRef.height = object.text.extra_info_for_photoshop.height + (object.text.extra_info_for_photoshop.height * 0.3);
 
 		try {
-			textItemRef.font = app.fonts.getByName(font).postScriptName;
+			textItemRef.font = app.fonts.getByName(sanitizeFont(font)).postScriptName;
 		} catch (error) {
-			// alert("Does not have this font: " + font);
+			alert("Does not have this font: " + font);
 		}
 
 		artLayerRef = null;
@@ -131,11 +153,16 @@ if (directory != null) {
 	var files_cleaned = cleaned_folder.getFiles();
 
 	for (var i=0; i<files_json.length; i++) {
+		if (String(files_json[i]).split('.')[1] != "json") {
+			continue;
+		}
+
 		var raw_file;
 		var cleaned_file;
 		var filename = get_filename(String(files_json[i]));
 		var json_file = String(files_json[i]);
-		var psd_file = json_file.replace('json', 'psd');
+		var psd_file = json_file.split('.')[0];
+		psd_file += '.psd';
 
 		for (var j=0; j<files_raw.length; j++) {
 			if (filename == get_filename(String(files_raw[j]))) {
